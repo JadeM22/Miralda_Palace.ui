@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom"
 import { useAuth } from "../context/AuthContext";
 import { isValidEmail, validatePassword } from "../utils/validators";
-import logo from '../src/assets/miralda-palace-logo.png';
+import logo from '../components/miralda-palace-logo.png';
 
 const LoginScreen = () => {
 

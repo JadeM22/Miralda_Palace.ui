@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import './App.css'
 
 import {
@@ -16,7 +15,7 @@ import PublicRoute from './components/PublicRoute'
 import Dashboard from './components/Dashboard'
 import LoginScreen from './components/LoginScreen'
 import SignupScreen from './components/SignupScreen'
-import ApartmentList from './components/ApartmentList'
+import ApartmentsList from './components/ApartmentsList'
 import ContractList from './components/ContractList'
 
 
@@ -60,10 +59,10 @@ function App() {
             />
 
             <Route
-              path='/apartment'
+              path='/apartments'
               element={
                 <ProtectedRoute>
-                  <ApartmentList />
+                  <ApartmentsList />
                 </ProtectedRoute>
               }
             />

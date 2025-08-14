@@ -1,224 +1,173 @@
-import { useState, useEffect } from 'react';
-import { apartmentService } from '../services';
+import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import Layout from './Layout';
-import ApartmentForm from './ApartmentForm';
+import { apartmentService } from '../services';
 
-const ApartmentsList = () => {
-    const [apartments, setApartments] = useState([]);
-    const [loading, setLoading] = useState(true);
+const ApartmentForm = ({ item, onSuccess, onCancel }) => {
+    const [formData, setFormData] = useState({
+        number: item?.number || '',
+        floor: item?.floor || '',
+        status: item?.status ?? 'active'
+    });
     const [error, setError] = useState('');
-    const [showForm, setShowForm] = useState(false);
-    const [editingItem, setEditingItem] = useState(null);
-    const [recentlyUpdated, setRecentlyUpdated] = useState(null);
-    const [successMessage, setSuccessMessage] = useState('');
+    const [isSubmitting, setIsSubmitting] = useState(false);
     const { validateToken } = useAuth();
 
-    useEffect(() => {
-        loadApartments();
-    }, []);
+    const handleChange = (e) => {
+        const { name, value } = e.target;
+        setFormData(prev => ({
+            ...prev,
+            [name]: value
+        }));
+        if (error) setError('');
+    };
 
-    useEffect(() => {
-        if (recentlyUpdated) {
-            const timer = setTimeout(() => setRecentlyUpdated(null), 2000);
-            return () => clearTimeout(timer);
+    const handleSubmit = async () => {
+        if (isSubmitting) return;
+
+        if (!validateToken()) {
+            return;
         }
-    }, [recentlyUpdated]);
 
-    useEffect(() => {
-        if (successMessage) {
-            const timer = setTimeout(() => setSuccessMessage(''), 3000);
-            return () => clearTimeout(timer);
+        if (!formData.number.trim()) {
+            setError('El número del apartamento es requerido');
+            return;
         }
-    }, [successMessage]);
 
-    const loadApartments = async () => {
-        if (!validateToken()) return;
+        if (!formData.floor.trim()) {
+            setError('El piso es requerido');
+            return;
+        }
+
+        setIsSubmitting(true);
+
         try {
-            setLoading(true);
             setError('');
-            const data = await apartmentService.getAll();
-            setApartments(data);
-        } catch (err) {
-            console.error('Error al cargar apartamentos:', err);
-            setError(err.message || 'Error al cargar los apartamentos');
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const handleCreate = () => {
-        setEditingItem(null);
-        setShowForm(true);
-    };
-
-    const handleEdit = (item) => {
-        setEditingItem(item);
-        setShowForm(true);
-    };
-
-    const handleDelete = async (item) => {
-        if (!validateToken()) return;
-
-        const hasContracts = item.number_of_contracts > 0;
-        const action = hasContracts ? 'desactivar' : 'eliminar';
-        const messageConfirmation = hasContracts
-            ? `Este apartamento tiene ${item.number_of_contracts} contrato(s). Se desactivará pero mantendrá la integridad de los datos.`
-            : 'Este apartamento será eliminado permanentemente del sistema.';
-
-        const confirmed = window.confirm(
-            `¿Estás seguro de ${action} el apartamento "${item.number}"?\n\n${messageConfirmation}\n\n¿Deseas continuar?`
-        );
-
-        if (confirmed) {
-            try {
-                setError('');
-                await apartmentService.deactivate(item.id);
-                await loadApartments();
-                setSuccessMessage(
-                    hasContracts ? 'Apartamento desactivado exitosamente' : 'Apartamento eliminado exitosamente'
-                );
-            } catch (err) {
-                console.error('Error al procesar:', err);
-                setError(err.message || `Error al ${action} el apartamento`);
+            let savedItem;
+            if (item) {
+                savedItem = await apartmentService.update(item.id, formData);
+                if (!savedItem) {
+                    savedItem = { ...item, ...formData };
+                }
+                onSuccess(savedItem, true);
+            } else {
+                savedItem = await apartmentService.create(formData);
+                if (!savedItem) {
+                    savedItem = { 
+                        id: Date.now(),
+                        ...formData 
+                    };
+                }
+                onSuccess(savedItem, false);
             }
+        } catch (error) {
+            console.error('Error al guardar:', error);
+            setError(error.message || 'Error al guardar el apartamento');
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
-    const handleFormSuccess = async (savedItem, isEdit = false) => {
-        await loadApartments();
-        setRecentlyUpdated(savedItem.id);
-        setSuccessMessage(isEdit ? 'Apartamento actualizado exitosamente' : 'Apartamento creado exitosamente');
-        setShowForm(false);
-        setEditingItem(null);
-        setError('');
+    const handleKeyPress = (e) => {
+        if (e.key === 'Enter' && !isSubmitting) {
+            handleSubmit();
+        }
+        if (e.key === 'Escape') {
+            onCancel();
+        }
     };
-
-    const handleFormCancel = () => {
-        setShowForm(false);
-        setEditingItem(null);
-    };
-
-    if (loading) {
-        return (
-            <div className="flex justify-center items-center min-h-screen bg-[#F8F8F8]">
-                <div className="text-lg text-[#7F8C8D]">Cargando apartamentos...</div>
-            </div>
-        );
-    }
 
     return (
-        <Layout>
-            <div className="flex justify-between items-center mb-6">
-                <h1 className="text-3xl font-bold text-[#1C1C1C]">Apartamentos</h1>
-                <button
-                    onClick={handleCreate}
-                    className="bg-[#D4AF37] hover:bg-[#B9962F] text-[#1C1C1C] font-medium py-2 px-4 rounded-md transition-colors"
-                >
-                    + Nuevo Apartamento
-                </button>
-            </div>
+        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center p-4 z-50">
+            <div className="bg-white rounded-xl shadow-xl max-w-md w-full border-2 border-pink-200">
+                <div className="p-6">
+                    <h2 className="text-2xl font-bold text-pink-600 mb-5">
+                        {item ? 'Editar Apartamento' : 'Nuevo Apartamento'}
+                    </h2>
 
-            {successMessage && (
-                <div className="mb-4 p-3 bg-[#FDF6E3] border border-[#D4AF37] text-[#1C1C1C] rounded-md">
-                    <div className="flex items-center">
-                        <span className="mr-2">✅</span>
-                        <span>{successMessage}</span>
+                    {error && (
+                        <div className="mb-4 p-3 bg-pink-100 border border-pink-400 text-pink-800 rounded-md">
+                            <div className="flex items-center">
+                                <span className="mr-2">❌</span>
+                                <span>{error}</span>
+                            </div>
+                        </div>
+                    )}
+
+                    <div className="space-y-4">
+                        <div>
+                            <label htmlFor="number" className="block text-sm font-medium text-gray-700 mb-1">
+                                Número *
+                            </label>
+                            <input
+                                type="text"
+                                id="number"
+                                name="number"
+                                value={formData.number}
+                                onChange={handleChange}
+                                onKeyDown={handleKeyPress}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-400"
+                                placeholder="Ej: 101"
+                                maxLength="10"
+                                autoFocus
+                            />
+                        </div>
+
+                        <div>
+                            <label htmlFor="floor" className="block text-sm font-medium text-gray-700 mb-1">
+                                Piso *
+                            </label>
+                            <input
+                                type="text"
+                                id="floor"
+                                name="floor"
+                                value={formData.floor}
+                                onChange={handleChange}
+                                onKeyDown={handleKeyPress}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-400"
+                                placeholder="Ej: 1"
+                                maxLength="5"
+                            />
+                        </div>
+
+                        <div>
+                            <label htmlFor="status" className="block text-sm font-medium text-gray-700 mb-1">
+                                Estado
+                            </label>
+                            <select
+                                id="status"
+                                name="status"
+                                value={formData.status}
+                                onChange={handleChange}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-400"
+                            >
+                                <option value="active">Activo</option>
+                                <option value="inactive">Inactivo</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div className="flex justify-end space-x-3 mt-6">
+                        <button
+                            type="button"
+                            onClick={onCancel}
+                            className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md transition-colors"
+                            disabled={isSubmitting}
+                        >
+                            Cancelar
+                        </button>
+                        <button
+                            type="button"
+                            onClick={handleSubmit}
+                            disabled={isSubmitting}
+                            className="px-4 py-2 text-sm font-medium text-white bg-pink-600 hover:bg-pink-700 rounded-md disabled:opacity-50 transition-colors"
+                        >
+                            {isSubmitting ? 'Guardando...' : 'Guardar'}
+                        </button>
                     </div>
                 </div>
-            )}
-
-            {error && (
-                <div className="mb-4 p-3 bg-[#FDF6E3] border border-red-500 text-[#1C1C1C] rounded-md">
-                    <div className="flex items-center">
-                        <span className="mr-2">❌</span>
-                        <span>{error}</span>
-                    </div>
-                </div>
-            )}
-
-            <div className="bg-[#FDF6E3] shadow-md rounded-lg overflow-hidden">
-                <table className="min-w-full divide-y divide-gray-300">
-                    <thead className="bg-[#FDF6E3]">
-                        <tr>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-[#7F8C8D] uppercase tracking-wider">ID</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-[#7F8C8D] uppercase tracking-wider">Número</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-[#7F8C8D] uppercase tracking-wider">Piso</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-[#7F8C8D] uppercase tracking-wider">Contratos</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-[#7F8C8D] uppercase tracking-wider">Estado</th>
-                            <th className="px-6 py-3 text-right text-xs font-medium text-[#7F8C8D] uppercase tracking-wider">Acciones</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {apartments.length === 0 ? (
-                            <tr>
-                                <td colSpan="6" className="px-6 py-4 text-center text-[#7F8C8D]">
-                                    No hay apartamentos registrados
-                                </td>
-                            </tr>
-                        ) : (
-                            apartments.map((item) => (
-                                <tr
-                                    key={item.id}
-                                    className={`hover:bg-[#FDF6E3] transition-colors ${
-                                        recentlyUpdated === item.id ? 'bg-[#D4AF37]/20 border-l-4 border-[#D4AF37]' : ''
-                                    }`}
-                                >
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-[#1C1C1C]">{item.id}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-[#1C1C1C]">{item.number}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-[#1C1C1C]">{item.floor}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-[#1C1C1C]">
-                                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                                            item.number_of_contracts > 0
-                                                ? 'bg-blue-100 text-blue-800'
-                                                : 'bg-gray-100 text-gray-800'
-                                        }`}>
-                                            {item.number_of_contracts} contrato(s)
-                                        </span>
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap">
-                                        <span
-                                            className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                                                item.status === 'active'
-                                                    ? 'bg-[#D4AF37]/30 text-[#1C1C1C]'
-                                                    : 'bg-red-200 text-[#1C1C1C]'
-                                            }`}
-                                        >
-                                            {item.status === 'active' ? 'Activo' : 'Inactivo'}
-                                        </span>
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                        <button
-                                            onClick={() => handleEdit(item)}
-                                            className="text-[#D4AF37] hover:text-[#B9962F] mr-3"
-                                        >
-                                            Editar
-                                        </button>
-                                        {item.status === 'active' && (
-                                            <button
-                                                onClick={() => handleDelete(item)}
-                                                className="text-[#D4AF37] hover:text-[#B9962F]"
-                                            >
-                                                {item.number_of_contracts > 0 ? 'Desactivar' : 'Eliminar'}
-                                            </button>
-                                        )}
-                                    </td>
-                                </tr>
-                            ))
-                        )}
-                    </tbody>
-                </table>
             </div>
-
-            {showForm && (
-                <ApartmentForm
-                    item={editingItem}
-                    onSuccess={handleFormSuccess}
-                    onCancel={handleFormCancel}
-                />
-            )}
-        </Layout>
+        </div>
     );
 };
 
-export default ApartmentsList;
+export default ApartmentForm;

@@ -68,7 +68,7 @@ function App() {
             />
 
             <Route
-              path='/contract'
+              path='/contracts'
               element={
                 <ProtectedRoute>
                   <ContractList />

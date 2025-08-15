@@ -1,4 +1,4 @@
-const API_BASE_URL = 'https://alquiler-api-production.up.railway.app/';
+const API_BASE_URL = 'http://localhost:8000';
 //const API_BASE_URL = 'http://localhost:8000';
 
 

@@ -1,17 +1,24 @@
-import { useState } from 'react';
-import { useAuth } from '../context/AuthContext';
+import { useState, useEffect } from 'react';
 import { contractService } from '../services';
 
 const ContractForm = ({ item, apartments, onSuccess, onCancel }) => {
     const [formData, setFormData] = useState({
-        id_apartment: item?.id_apartment || '',
+        id_apartment: item?.apartment?.id || '', 
         start_date: item?.start_date || '',
         end_date: item?.end_date || '',
-        status: item?.status ?? 'active',
+        active: item?.active ?? true
     });
     const [error, setError] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const { validateToken } = useAuth();
+
+    useEffect(() => {
+        setFormData({
+            id_apartment: item?.apartment?.id || '',
+            start_date: item?.start_date || '',
+            end_date: item?.end_date || '',
+            active: item?.active ?? true
+        });
+    }, [item]);
 
     const handleChange = (e) => {
         const { name, value, type, checked } = e.target;
@@ -25,42 +32,41 @@ const ContractForm = ({ item, apartments, onSuccess, onCancel }) => {
     const handleSubmit = async () => {
         if (isSubmitting) return;
 
-        if (!validateToken()) return;
-
-        if (!formData.id_apartment.trim()) {
+        if (!formData.id_apartment) {
             setError('El apartamento es requerido');
             return;
         }
-
-
-        if (!formData.start_date.trim()) {
+        if (!formData.start_date) {
             setError('La fecha de inicio es requerida');
             return;
         }
-
-        if (!formData.end_date.trim()) {
+        if (!formData.end_date) {
             setError('La fecha de finalización es requerida');
+            return;
+        }
+        if (new Date(formData.end_date) < new Date(formData.start_date)) {
+            setError('La fecha de finalización no puede ser anterior a la de inicio');
             return;
         }
 
         setIsSubmitting(true);
-
         try {
             setError('');
+            const payload = { ...formData, id_apartment: formData.id_apartment };
             let savedItem;
-            
+
             if (item) {
-                savedItem = await contractService.update(item.id, formData);
-                if (!savedItem) savedItem = { ...item, ...formData };
+                savedItem = await contractService.update(item.id, payload);
+                if (!savedItem) savedItem = { ...item, ...payload };
                 onSuccess(savedItem, true);
             } else {
-                savedItem = await contractService.create(formData);
-                if (!savedItem) savedItem = { id: Date.now().toString(), ...formData };
+                savedItem = await contractService.create(payload);
+                if (!savedItem) savedItem = { id: Date.now().toString(), ...payload };
                 onSuccess(savedItem, false);
             }
-        } catch (error) {
-            console.error('Error al guardar:', error);
-            setError(error.message || 'Error al guardar el contrato');
+        } catch (err) {
+            console.error('Error al guardar:', err);
+            setError(err.message || 'Error al guardar el contrato');
         } finally {
             setIsSubmitting(false);
         }
@@ -71,18 +77,24 @@ const ContractForm = ({ item, apartments, onSuccess, onCancel }) => {
         if (e.key === 'Escape') onCancel();
     };
 
-    const activeApartments = apartments.filter(a => a.active);
+    // Mostrar solo apartamentos activos o el del contrato que estamos editando
+    const activeApartments = apartments.filter(a => {
+        if (!a) return false;
+        const apartmentId = String(a.id);                  
+        const currentId = item?.apartment?.id ? String(item.apartment.id) : null;
+        return a.active || apartmentId === currentId;
+    });
 
     return (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
             <div className="bg-white rounded-lg shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
                 <div className="p-6">
-                    <h2 className="text-xl font-bold text-gray-800 mb-4">
+                    <h2 className="text-xl font-bold text-[#1C1C1C] mb-4">
                         {item ? 'Editar Contrato' : 'Nuevo Contrato'}
                     </h2>
 
                     {error && (
-                        <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded-md">
+                        <div className="mb-4 p-3 bg-red-100 border border-red-400 text-black rounded-md">
                             <div className="flex items-center">
                                 <span className="mr-2">❌</span>
                                 <span>{error}</span>
@@ -92,7 +104,7 @@ const ContractForm = ({ item, apartments, onSuccess, onCancel }) => {
 
                     <div className="space-y-4">
                         <div>
-                            <label htmlFor="id_apartment" className="block text-sm font-medium text-gray-700 mb-1">
+                            <label htmlFor="id_apartment" className="block text-sm font-medium text-[#1C1C1C] mb-1">
                                 Apartamento *
                             </label>
                             <select
@@ -100,38 +112,21 @@ const ContractForm = ({ item, apartments, onSuccess, onCancel }) => {
                                 name="id_apartment"
                                 value={formData.id_apartment}
                                 onChange={handleChange}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500"
-                                required
+                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#D4AF37]"
                             >
                                 <option value="">Seleccionar apartamento...</option>
-                                {activeApartments.map((a) => (
+                                {activeApartments.map(a => (
                                     <option key={a.id} value={a.id}>
-                                        {a.description}
+                                        {a.number || a.name}
                                     </option>
                                 ))}
                             </select>
                         </div>
 
-                        <div>
-                            <label htmlFor="id_User" className="block text-sm font-medium text-gray-700 mb-1">
-                                Usuario *
-                            </label>
-                            <input
-                                type="text"
-                                id="id_User"
-                                name="id_User"
-                                value={formData.id_User}
-                                onChange={handleChange}
-                                onKeyDown={handleKeyPress}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500"
-                                placeholder="ID del usuario"
-                            />
-                        </div>
-
                         <div className="grid grid-cols-2 gap-4">
                             <div>
-                                <label htmlFor="start_date" className="block text-sm font-medium text-gray-700 mb-1">
-                                    Fecha Inicio *
+                                <label htmlFor="start_date" className="block text-sm font-medium text-[#1C1C1C] mb-1">
+                                    Fecha de Inicio *
                                 </label>
                                 <input
                                     type="date"
@@ -140,13 +135,13 @@ const ContractForm = ({ item, apartments, onSuccess, onCancel }) => {
                                     value={formData.start_date}
                                     onChange={handleChange}
                                     onKeyDown={handleKeyPress}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500"
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#D4AF37]"
                                 />
                             </div>
 
                             <div>
-                                <label htmlFor="end_date" className="block text-sm font-medium text-gray-700 mb-1">
-                                    Fecha Fin *
+                                <label htmlFor="end_date" className="block text-sm font-medium text-[#1C1C1C] mb-1">
+                                    Fecha de Fin *
                                 </label>
                                 <input
                                     type="date"
@@ -155,7 +150,7 @@ const ContractForm = ({ item, apartments, onSuccess, onCancel }) => {
                                     value={formData.end_date}
                                     onChange={handleChange}
                                     onKeyDown={handleKeyPress}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500"
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#D4AF37]"
                                 />
                             </div>
                         </div>
@@ -163,16 +158,13 @@ const ContractForm = ({ item, apartments, onSuccess, onCancel }) => {
                         <div className="flex items-center">
                             <input
                                 type="checkbox"
-                                id="status"
-                                name="status"
-                                checked={formData.status === 'active'}
-                                onChange={(e) => setFormData(prev => ({
-                                    ...prev,
-                                    status: e.target.checked ? 'active' : 'inactive'
-                                }))}
-                                className="h-4 w-4 text-pink-600 focus:ring-pink-500 border-gray-300 rounded"
+                                id="active"
+                                name="active"
+                                checked={formData.active}
+                                onChange={handleChange}
+                                className="h-4 w-4 text-[#D4AF37] focus:ring-[#D4AF37] border-gray-300 rounded"
                             />
-                            <label htmlFor="status" className="ml-2 block text-sm text-gray-700">
+                            <label htmlFor="active" className="ml-2 block text-sm text-[#1C1C1C]">
                                 Activo
                             </label>
                         </div>
@@ -182,7 +174,7 @@ const ContractForm = ({ item, apartments, onSuccess, onCancel }) => {
                         <button
                             type="button"
                             onClick={onCancel}
-                            className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md transition-colors"
+                            className="px-4 py-2 text-sm font-medium text-[#1C1C1C] bg-[#F5F5F5] hover:bg-[#E0E0E0] rounded-md transition-colors"
                             disabled={isSubmitting}
                         >
                             Cancelar
@@ -191,7 +183,7 @@ const ContractForm = ({ item, apartments, onSuccess, onCancel }) => {
                             type="button"
                             onClick={handleSubmit}
                             disabled={isSubmitting}
-                            className="px-4 py-2 text-sm font-medium text-white bg-pink-500 hover:bg-pink-600 rounded-md disabled:opacity-50 transition-colors"
+                            className="px-4 py-2 text-sm font-medium text-black bg-[#D4AF37] hover:bg-[#B9962B] rounded-md disabled:opacity-50 transition-colors"
                         >
                             {isSubmitting ? 'Guardando...' : 'Guardar'}
                         </button>

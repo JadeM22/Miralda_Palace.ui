@@ -48,7 +48,7 @@ export const apartmentService = {
                 },
                 body: JSON.stringify({
                     number: apartment.number,
-                    floor: apartment.floor,
+                    level: apartment.level,
                     status: apartment.status ?? 'active'
                 })
             });
@@ -71,7 +71,7 @@ export const apartmentService = {
                 },
                 body: JSON.stringify({
                     number: apartment.number,
-                    floor: apartment.floor,
+                    level: apartment.level,
                     status: apartment.status
                 })
             });
@@ -83,21 +83,24 @@ export const apartmentService = {
         }
     },
 
-    deactivate: async (id) => {
-        try {
-            const token = localStorage.getItem('authToken');
-            const response = await fetch(`${API_BASE_URL}/apartments/${id}`, {
-                method: 'DELETE',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                }
-            });
+    toggleStatus: async (id, currentStatus) => {
+    try {
+        const token = localStorage.getItem('authToken');
+        const newStatus = currentStatus === 'active' ? 'inactive' : 'active';
 
-            return await handleResponse(response);
-        } catch (error) {
-            console.error('Error al desactivar apartamento:', error);
-            throw error;
-        }
+        const response = await fetch(`${API_BASE_URL}/apartments/${id}/status`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ status: newStatus })
+        });
+
+        return await handleResponse(response);
+    } catch (error) {
+        console.error('Error al alternar estado del apartamento:', error);
+        throw error;
     }
-};
+}
+}

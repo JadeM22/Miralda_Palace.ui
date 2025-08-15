@@ -5,7 +5,7 @@ export const contractService = {
         try {
             const response = await fetch(`${API_BASE_URL}/contracts`, {
                 method: 'GET',
-                headers: { 'Content-Type': 'application/json' }
+                headers: { 'Content-Type': 'application/json' } // público
             });
             return await handleResponse(response);
         } catch (error) {
@@ -18,7 +18,7 @@ export const contractService = {
         try {
             const response = await fetch(`${API_BASE_URL}/contracts/${id}`, {
                 method: 'GET',
-                headers: { 'Content-Type': 'application/json' }
+                headers: { 'Content-Type': 'application/json' } 
             });
             return await handleResponse(response);
         } catch (error) {
@@ -29,13 +29,9 @@ export const contractService = {
 
     create: async (contract) => {
         try {
-            const token = localStorage.getItem('authToken');
             const response = await fetch(`${API_BASE_URL}/contracts`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
+                headers: { 'Content-Type': 'application/json' }, 
                 body: JSON.stringify({
                     id_apartment: contract.id_apartment,
                     start_date: contract.start_date,
@@ -52,13 +48,9 @@ export const contractService = {
 
     update: async (id, contract) => {
         try {
-            const token = localStorage.getItem('authToken');
             const response = await fetch(`${API_BASE_URL}/contracts/${id}`, {
                 method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
+                headers: { 'Content-Type': 'application/json' }, 
                 body: JSON.stringify({
                     id_apartment: contract.id_apartment,
                     start_date: contract.start_date,
@@ -73,19 +65,16 @@ export const contractService = {
         }
     },
 
-    deactivate: async (id) => {
+    deleteOrDeactivate: async (id) => {
         try {
-            const token = localStorage.getItem('authToken');
             const response = await fetch(`${API_BASE_URL}/contracts/${id}`, {
                 method: 'DELETE',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                }
+                headers: { 'Content-Type': 'application/json' } 
             });
-            return await handleResponse(response);
+            await handleResponse(response);
+            return true;
         } catch (error) {
-            console.error('Error al desactivar contrato:', error);
+            console.error('Error al eliminar/desactivar contrato:', error);
             throw error;
         }
     }

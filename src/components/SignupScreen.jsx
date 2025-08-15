@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { isValidEmail, validatePassword, getPasswordStrength } from "../utils/validators";
+import Logo from './miralda-palace-logo.png'; 
 
 const SignupScreen = () => {
     const [formData, setFormData] = useState({
@@ -15,7 +16,7 @@ const SignupScreen = () => {
     const [showSuccessModal, setShowSuccessModal] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     
-    const { register } = useAuth(); // Removemos loading del contexto para el signup también
+    const { register } = useAuth();
     const navigate = useNavigate();
 
     const handleChange = (e) => {
@@ -24,21 +25,16 @@ const SignupScreen = () => {
             ...prev,
             [name]: value
         }));
-        // Limpiar errores cuando el usuario empiece a escribir
         if (error) setError('');
     };
 
     const handleSignup = async () => {
-        // Evitar múltiples envíos
-        if (isSubmitting) {
-            return;
-        }
+        if (isSubmitting) return;
         
         setError('');
         setSuccess('');
         setIsSubmitting(true);
 
-        // Validaciones básicas
         if (!formData.full_name.trim()) {
             setError('El nombre es requerido');
             setIsSubmitting(false);
@@ -49,22 +45,18 @@ const SignupScreen = () => {
             setIsSubmitting(false);
             return;
         }
-        
-        // Validación de formato de email
         if (!isValidEmail(formData.email)) {
             setError('Por favor ingresa un email válido');
             setIsSubmitting(false);
             return;
         }
-        
-        // Validaciones de contraseña
+
         const passwordValidation = validatePassword(formData.password);
         if (!passwordValidation.isValid) {
             setError(passwordValidation.message);
             setIsSubmitting(false);
             return;
         }
-        
         if (formData.password !== formData.confirmPassword) {
             setError('Las contraseñas no coinciden');
             setIsSubmitting(false);
@@ -76,16 +68,12 @@ const SignupScreen = () => {
             if (result) {
                 setSuccess('¡Cuenta creada exitosamente!');
                 setShowSuccessModal(true);
-
-                // Limpiar formulario
                 setFormData({
                     full_name: '',
                     email: '',
                     password: '',
                     confirmPassword: ''
                 });
-
-                // Redirección será controlada por el usuario al aceptar en el modal
             }
         } catch (error) {
             console.error('Error en registro:', error);
@@ -96,12 +84,16 @@ const SignupScreen = () => {
     };
 
     return (
-        <div className="min-h-screen bg-pink-50 flex items-center justify-center p-4">
+        <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
             <div className="bg-white p-8 rounded-lg shadow-md w-full max-w-md">
                 {/* Header */}
                 <div className="text-center mb-8">
-                    <div className="w-16 h-16 bg-pink-500 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <span className="text-2xl text-white">🍭</span>
+                    <div className="w-16 h-16 mx-auto mb-4">
+                        <img 
+                            src={Logo} 
+                            alt="Miralda Palace Logo" 
+                            className="w-full h-full object-contain" 
+                        />
                     </div>
                     <h1 className="text-2xl font-bold text-gray-800">Miralda Palace</h1>
                     <p className="text-gray-600">Crear cuenta nueva</p>
@@ -125,7 +117,7 @@ const SignupScreen = () => {
                         </div>
                         {(error.includes('email ya está registrado') || error.includes('usuario ya existe')) && (
                             <div className="mt-2 text-sm">
-                                <Link to="/login" className="text-pink-600 hover:text-pink-700 underline">
+                                <Link to="/login" className="text-gray-700 hover:text-gray-800 underline">
                                     ¿Ya tienes cuenta? Inicia sesión aquí
                                 </Link>
                             </div>
@@ -162,7 +154,7 @@ const SignupScreen = () => {
                                 value={formData.full_name}
                                 onChange={handleChange}
                                 required
-                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500"
+                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-500"
                                 placeholder="Juan David Lopez Aguilar"
                             />
                         </div>
@@ -178,7 +170,7 @@ const SignupScreen = () => {
                             value={formData.email}
                             onChange={handleChange}
                             required
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-500"
                             placeholder="usuario2@example.com"
                         />
                     </div>
@@ -194,11 +186,9 @@ const SignupScreen = () => {
                             value={formData.password}
                             onChange={handleChange}
                             required
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-500"
                             placeholder="8-64 caracteres, 1 mayúscula, 1 número, 1 especial"
                         />
-                        
-                        {/* Indicador de fortaleza de contraseña */}
                         {formData.password && (
                             <div className="mt-2">
                                 <div className="text-xs text-gray-600 mb-1">Requisitos de contraseña:</div>
@@ -242,7 +232,7 @@ const SignupScreen = () => {
                             value={formData.confirmPassword}
                             onChange={handleChange}
                             required
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-500"
                             placeholder="Confirma tu contraseña"
                         />
                     </div>
@@ -250,21 +240,21 @@ const SignupScreen = () => {
                     <button
                         type="submit"
                         disabled={isSubmitting}
-                        className="w-full bg-pink-500 text-white py-2 px-4 rounded-md hover:bg-pink-600 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="w-full bg-gray-700 text-white py-2 px-4 rounded-md hover:bg-gray-800 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                         {isSubmitting ? 'Creando cuenta...' : 'Crear Cuenta'}
                     </button>
                 </form>
 
-                {/* Link de login */}
                 <p className="text-center text-sm text-gray-600 mt-4">
                     ¿Ya tienes cuenta?{" "}
-                    <Link to="/login" className="text-pink-500 hover:text-pink-600">
+                    <Link to="/login" className="text-gray-700 hover:text-gray-800">
                         Inicia sesión
                     </Link>
                 </p>
             </div>
-        {showSuccessModal && (
+
+            {showSuccessModal && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center">
                     <div className="absolute inset-0 bg-black bg-opacity-40" />
                     <div className="relative bg-white rounded-lg shadow-lg w-11/12 max-w-md p-6">
@@ -274,14 +264,14 @@ const SignupScreen = () => {
                             </div>
                             <h3 className="text-lg font-semibold text-gray-800">Cuenta creada</h3>
                         </div>
-            <p className="text-gray-600 mb-4">{success} Presiona "Aceptar" para ir al login.</p>
+                        <p className="text-gray-600 mb-4">{success} Presiona "Aceptar" para ir al login.</p>
                         <div className="flex justify-end gap-2">
                             <button
                                 type="button"
                                 onClick={() => navigate('/login', { replace: true })}
-                                className="px-4 py-2 rounded-md bg-pink-500 text-white hover:bg-pink-600"
+                                className="px-4 py-2 rounded-md bg-gray-700 text-white hover:bg-gray-800"
                             >
-                Aceptar
+                                Aceptar
                             </button>
                         </div>
                     </div>

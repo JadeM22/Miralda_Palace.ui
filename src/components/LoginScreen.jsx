@@ -2,7 +2,7 @@ import { useState } from "react";
 import Logo from './miralda-palace-logo.png';
 import { Link, useNavigate } from "react-router-dom"
 import { useAuth } from "../context/AuthContext";
-// import { isValidEmail, validatePassword } from "../utils/validators";
+
 
 const LoginScreen = () => {
 
@@ -10,7 +10,7 @@ const LoginScreen = () => {
     const [password, setPassword] = useState("");
     const [error, setError] = useState("");
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const { login } = useAuth(); // Removemos loading del contexto
+    const { login } = useAuth(); 
     const navigate = useNavigate();
 
     const handleLogin = async () => {
